@@ -1,0 +1,66 @@
+version: '3.7'
+services:
+  bookshop-mysql-backup:
+    image: ubuntu:latest
+    container_name: bookshop-mysql-backup
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./scripts/setup.sh:/scripts/setup.sh  # Add this line to mount setup.sh
+      - ./scripts/backup_script.sh:/scripts/backup_script.sh
+      - ./backups:/backups
+    secrets:
+      - bookshop_mysql_root_password
+      - bookshop_mysql_database
+      - bookshop_mysql_user
+      - bookshop_mysql_password
+    environment:
+      MYSQL_HOST: "mysql"  # Set this to your MySQL service name if different
+    networks:
+      - bookshop_network
+    command: /bin/bash -c "/scripts/setup.sh" 
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:latest
+    container_name: bookshop-mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/bookshop_mysql_root_password
+      MYSQL_DATABASE_FILE: /run/secrets/bookshop_mysql_database
+      MYSQL_USER_FILE: /run/secrets/bookshop_mysql_user
+      MYSQL_PASSWORD_FILE: /run/secrets/bookshop_mysql_password
+    secrets:
+      - bookshop_mysql_root_password
+      - bookshop_mysql_database
+      - bookshop_mysql_user
+      - bookshop_mysql_password
+    volumes:
+      - bookshop_mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    ports:
+      - "3306:3306"
+    networks:
+      - bookshop_network
+
+networks:
+  bookshop_network:
+    driver: bridge
+
+volumes:
+  bookshop_mysql_data:
+
+secrets:
+  bookshop_mysql_root_password:
+    file: ./secrets/mysql_root_password.txt
+  bookshop_mysql_database:
+    file: ./secrets/mysql_database.txt
+  bookshop_mysql_user:
+    file: ./secrets/mysql_user.txt
+  bookshop_mysql_password:
+    file: ./secrets/mysql_password.txt

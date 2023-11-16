@@ -1,0 +1,6 @@
+mysql_container="testingC"
+mysql_user="testingU"
+mysql_password="dghRGElDbHUHU3chhuud"
+mysql_database="testingD"
+backup_dir="./docker/backups"
+backup_retention_days="7"
